@@ -1,0 +1,256 @@
+Clear[aux, t, x, a1, a2, a3, a4, a5, b1, b2, c1, c2, q1, q2, q3, q4, 
+  q5, V1, V12, V22, u, x1, x2, y2, y3, z2, z3, m, n, in];
+
+
+R = 1.3036; Subscript[\[Theta], 0] = 4/7; Subscript[\[Theta], 1] = 4/7;
+G0[aux_, t_, in_, 
+   k_] = -((-t)^(k - 1)/(k - 2)!) Integrate[
+    E^(-aux *u*t* Subscript[\[Theta], 1]) u^(k - 2) (1 - u)^in t^
+     in, {u, 0, 1}];
+G1[aux_, t_, in_, k_] = 
+  Which[k == 2, -2*t^in, 
+   k == 3, -((3 (-t)^(3 - 2))/(3 - 3)!) Integrate[
+     E^(-aux* u*t* Subscript[\[Theta], 1]) u^(3 - 3) (1 - u)^in t^
+      in, {u, 0, 1}]];
+G2[aux_, t_, in_, k_] = 
+  Which[k == 2, aux*Subscript[\[Theta], 1]*t^in + in*t^(in - 1), 
+   k == 3, -3 *t^in];
+G3[aux_, t_, in_, k_] = 
+  Which[k == 2, 0, k == 3, 
+   aux* Subscript[\[Theta], 1]*t^in + in*t^(in - 1)];
+I2[aux_, t_, in_, k_] = 
+  Which[k == 0, G0[aux, t, in, 2], k == 1, G1[aux, t, in, 2], k == 2, 
+   G2[aux, t, in, 2], k == 3, G3[aux, t, in, 2]];
+I3[aux_, t_, in_, k_] = 
+  Which[k == 0, G0[aux, t, in, 3], k == 1, G1[aux, t, in, 3], k == 2, 
+   G2[aux, t, in, 3], k == 3, G3[aux, t, in, 3]];
+P1[aux_, t_, in_] = aux*Subscript[\[Theta], 0]*t^in + in*t^(in - 1);
+PC = Compile[{{m, _Integer}, {n, _Integer}}, 
+   Sum[(m!*n!)/(l!*(m - l)!*(n - l)!*(m + n)!), {l, 0, Min[m, n]}]];
+P00[x_] = 
+  x + p02 x (1 - x) + p03 x (1 - x)^2 + p04 x (1 - x)^3 + 
+   p05 x (1 - x)^4 ;
+P01[x_] = p11 x + p12 x^2 + p13 x^3;
+P02[x_] = p21 x + p22 x^2 + p23 x^3; 
+Q[x_] = q0 + q1 (1 - 2 x) + 
+   q2 (1 - 2 x)^3 + (1 - q0 - q1 - q2) (1 - 2 x)^5;
+{p1[0], p1[1], p1[2], p1[3], p1[4], p1[5]} = 
+  CoefficientList[P00[x], x];
+{p2[0], p2[1], p2[2], p2[3]} = CoefficientList[P01[x], x];
+{p3[0], p3[1], p3[2], p3[3]} = CoefficientList[P02[x], x];
+{q[0], q[1], q[2], q[3], q[4], q[5]} = CoefficientList[Q[x], x];
+
+i = 1; cc = 0;
+While[i < 6 , j = 1;
+  While[j < 6, k = 0;
+   While[k < 6, l = 0;
+    While[l < 6, concon[a_, b_, x_] = P1[a, 1 - x, i]*P1[b, 1 - x, j];
+                                 
+     concons[a_, b_, x_] = (
+      concon[a, b, x] - E^(-a - b) concon[-b, -a, x])/(a + b);
+                      
+                               conconq := Derivative[l, k, 0][concons];
+                               
+     cc = cc + 
+       p1[i]*p1[j]*q[k]*q[l]*(-1)^(l + k)/Subscript[\[Theta], 0]*
+        Re[NIntegrate[conconq[-R, -R, x], {x, 0, 1}, 
+          Method -> {"GlobalAdaptive", "MaxErrorIncreases" -> 10000, 
+            Method -> "GaussKronrodRule"}]]; l = l + 1]; k = k + 1]; 
+   j = j + 1]; i = i + 1];
+TimeUsed[]
+
+8.389
+
+Clear[i, j, k, l, r, cf2];
+
+i = 1; cf2 = 0;
+While[i < 6, j = 1;
+ While[j < 4, k = 0;
+  While[k < 6, l = 0;
+   While[l < 6, r = 0;
+         While[r < 3,
+                                
+     confen02[a_, b_, x_] = 
+      x^r*P1[a, 1 - x Subscript[\[Theta], 1]/Subscript[\[Theta], 0], 
+        i]*I2[b, 1 - x, j, r];
+                                
+     confens02[a_, b_, x_] = (
+      confen02[a, b, x] - E^(-a - b) confen02[-b, -a, x])/(a + b);
+     			confenq02 := Derivative[l, k, 0][confens02];
+                               
+     cf2 = cf2 + 
+       p1[i]*p2[j]*q[k]*q[l]*(-1)^(l + k)/(r!*Subscript[\[Theta], 0])*
+        Re[NIntegrate[confenq02[-R, -R, x], {x, 0, 1}, 
+          Method -> {"GlobalAdaptive", "MaxErrorIncreases" -> 10000, 
+            Method -> "GaussKronrodRule"}]]; r++]; l = l + 1]; 
+   k = k + 1]; j = j + 1]; i = i + 1]
+TimeUsed[]
+
+19.92
+
+Clear[i, j, k, l, r, cf3];
+i = 1; cf3 = 0;
+While[i < 6, j = 1;
+ While[j < 4, k = 0;
+  While[k < 6, l = 0;
+   While[l < 6, r = 0;
+         While[r < 4,
+                                
+     confen03[a_, b_, x_] = 
+      x^r*P1[a, 1 - x Subscript[\[Theta], 1]/Subscript[\[Theta], 0], 
+        i]*I3[b, 1 - x, j, r];
+                                
+     confens03[a_, b_, x_] = (
+      confen03[a, b, x] - E^(-a - b) confen03[-b, -a, x])/(a + b);
+     			confenq03 := Derivative[l, k, 0][confens03];
+                               
+     cf3 = cf3 + 
+       p1[i]*p3[j]*q[k]*q[l]*(-1)^(l + k)/(r!*Subscript[\[Theta], 0])*
+        Re[
+         NIntegrate[confenq03[-R, -R, x], {x, 0, 1}, 
+          Method -> {"GlobalAdaptive", "MaxErrorIncreases" -> 10000, 
+            Method -> "GaussKronrodRule"}]]; r++]; l = l + 1]; 
+   k = k + 1]; j = j + 1]; i = i + 1]
+TimeUsed[]
+
+216.764
+
+Clear[i, j, k, l, r, s, ff22];
+i = 1; ff22 = 0;
+While[i < 4, j = 1;
+ While[j < 4, k = 0;
+  While[k < 6, l = 0;
+   While[l < 6, r = 0;
+      While[r < 3, s = 0;
+         While[s < 3,       
+                                 
+      fenfen22[a_, b_, x_] = 
+       x^(r + s)*I2[a, 1 - x, i, s]*I2[b, 1 - x, j, r];
+                                 
+      fenfens22[a_, b_, x_] = (
+       fenfen22[a, b, x] - E^(-a - b) fenfen22[-b, -a, x])/(a + b);
+      			fenfenq22 := Derivative[l, k, 0][fenfens22];
+                                
+      ff22 = ff22 + 
+        p2[i]*p2[j]*q[k]*q[l]*(-1)^(l + k)/Subscript[\[Theta], 1]*
+         PC[r, s]*
+         Re[NIntegrate[fenfenq22[-R, -R, x], {x, 0, 1}, 
+           Method -> {"GlobalAdaptive", "MaxErrorIncreases" -> 10000, 
+             Method -> "GaussKronrodRule"}]]; s++]; r++]; l = l + 1]; 
+   k = k + 1]; j = j + 1]; i = i + 1]
+TimeUsed[]
+
+265.264
+
+
+Clear[i, j, k, l, r, s, ff23];
+i = 1; ff23 = 0;
+While[i < 4, j = 1;
+ While[j < 4, k = 0;
+  While[k < 6, l = 0;
+   While[l < 6, r = 0;
+      While[r < 4, s = 0;
+         While[s < 3,       
+                                 
+      fenfen23[a_, b_, x_] = 
+       x^(r + s)*I2[a, 1 - x, i, s]*I3[b, 1 - x, j, r];
+                                 
+      fenfens23[a_, b_, x_] = (
+       fenfen23[a, b, x] - E^(-a - b) fenfen23[-b, -a, x])/(a + b);
+      			fenfenq23 := Derivative[l, k, 0][fenfens23];
+                                
+      ff23 = ff23 + 
+        p2[i]*p3[j]*q[k]*q[l]*(-1)^(l + k)/Subscript[\[Theta], 1]*
+         PC[r, s]*
+         Re[NIntegrate[fenfenq23[-R, -R, x], {x, 0, 1}, 
+           Method -> {"GlobalAdaptive", "MaxErrorIncreases" -> 10000, 
+             Method -> "GaussKronrodRule"}]]; s++]; r++]; l = l + 1]; 
+   k = k + 1]; j = j + 1]; i = i + 1]
+TimeUsed[]
+
+696.764
+
+Clear[i, j, k, l, r, s, ff33];
+i = 1; ff33 = 0;
+While[i < 4, j = 1;
+ While[j < 4, k = 0;
+  While[k < 6, l = 0;
+   While[l < 6, r = 0;
+      While[r < 4, s = 0;
+         While[s < 4,       
+                                 
+      fenfen33[a_, b_, x_] = 
+       x^(r + s)*I3[a, 1 - x, i, s]*I3[b, 1 - x, j, r];
+                                 
+      fenfens33[a_, b_, x_] = (
+       fenfen33[a, b, x] - E^(-a - b) fenfen33[-b, -a, x])/(a + b);
+      			fenfenq33 := Derivative[l, k, 0][fenfens33];
+                                
+      ff33 = ff33 + 
+        p3[i]*p3[j]*q[k]*q[l]*(-1)^(l + k)/Subscript[\[Theta], 1]*
+         PC[r, s]*
+         Re[NIntegrate[fenfenq33[-R, -R, x], {x, 0, 1}, 
+           Method -> {"GlobalAdaptive", "MaxErrorIncreases" -> 10000, 
+             Method -> "GaussKronrodRule"}]]; s++]; r++]; l = l + 1]; 
+   k = k + 1]; j = j + 1]; i = i + 1]
+TimeUsed[]
+
+1708.2
+
+Minimize[cc + 2 (cf2 + cf3 + ff23) + ff22 + ff33, {p02, p03, p04, p05,
+   p11, p12, p13, p21, p22, p23, q0, q1, q2, q3}]
+
+{2.13745, {p02 -> 0.261077, p03 -> -1.07101, p04 -> -0.23684, 
+  p05 -> 0.260234, p11 -> 1.04827, p12 -> 1.31991, p13 -> -0.940058, 
+  p21 -> 0.522812, p22 -> -0.68651, p23 -> -0.0499239, q0 -> 0.490464,
+   q1 -> 0.636852, q2 -> -0.159327, q3 -> -0.0452241}}
+
+1 - Log[2.1374544061177065`]/R
+
+0.417294
+
+1 - 0.49104466722644263 - 0.6323866423049164` - (-0.15444126926636118`)
+
+0.03101
+
+P00[x_] = 
+  x + 0.26107655428766874` x (1 - x) - 
+   1.0710070584688371` x (1 - x)^2 - 
+   0.2368403810100388` x (1 - x)^3 + 0.26023389454818024` x (1 - x)^4 ;
+P01[x_] = 
+  1.0482749626606975` x + 1.3199126585889513` x^2 - 
+   0.9400584473859237` x^3;
+P02[x_] = 
+  0.5228119879990683` x - 0.6865103565474571` x^2 - 
+   0.0499239413756441` x^3; 
+Q[x_] = 0.4904641213705433` + 
+   0.6368518935202375` (1 - 2 x) + -0.15932727726618862` (1 - 
+      2 x)^3 + 0.032011262375407856` (1 - 2 x)^5;
+
+P00[1]
+
+1.
+
+P00[0]
+
+0.
+
+
+
+Q[0]
+
+1.
+
+FullSimplify[Q[x] + Q[1 - x]]
+
+0.980928
+
+Solve[0.9679887376245921` + A == 1]
+
+{{A -> 0.0320113}}
+
+Q[1]
+
+0.0581636
+
+0.41729396200519175`
